@@ -27,8 +27,9 @@ void SaveBmp(AVCodecContext *CodecContex, AVFrame *Picture, int width, int heigh
 int _tmain(int argc, _TCHAR* argv[])
 {
 	int vIndex = -1;
+	int aIndex = -1;
 
-	char * sourceFile = "d:\\media\\a.avi";
+	char * sourceFile = "d:\\media\\3d\\Avatar1024.mkv";
 	char * destFile	  = "c:\\enc_out.mp4";
 	int width, height;
 	
@@ -73,7 +74,11 @@ int _tmain(int argc, _TCHAR* argv[])
 		if(pInputFormatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO)
 		{
 			vIndex = i;
-			break;
+			//break;
+		}
+		else if(pInputFormatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO)
+		{
+			aIndex = i;
 		}
 	}
 
@@ -116,34 +121,22 @@ int _tmain(int argc, _TCHAR* argv[])
 	{
 		goto LINK_ERROR;
 	}
-
-	//AVIOContext *avio =avio_alloc_context(pEncodeBuf, MAX_BUFFER_SIZE, 0, buffer, fill_iobuffer, NULL,NULL); 
-	//unsigned char * iobuffer=(unsigned char *)av_malloc(MAX_BUFFER_SIZE);
-	//AVIOContext *avio = avio_alloc_context(iobuffer, MAX_BUFFER_SIZE, 0, NULL, NULL, NULL,NULL);  
-	//pOutputFormatContext->pb = avio;	
-
+	
 	//设定输出流编码参数
 	pOutputCodecContext = pOutStream->codec;
 	pOutputCodecContext->codec_id = AV_CODEC_ID_MPEG4;
 	pOutputCodecContext->codec_type = AVMEDIA_TYPE_VIDEO;
-	pOutputCodecContext->bit_rate	= 512*1024;//98000;
+	pOutputCodecContext->bit_rate	= 128*1024;//98000;
 	pOutputCodecContext->width = width;
 	pOutputCodecContext->height = height;
 	pOutputCodecContext->time_base = pInputCodecContext->time_base;
 	pOutputCodecContext->gop_size = pInputCodecContext->gop_size;
 	pOutputCodecContext->pix_fmt = pInputCodecContext->pix_fmt;
-	pOutputCodecContext->max_b_frames = pInputCodecContext->max_b_frames;
-	//pOutputCodecContext->time_base.den = 15;
-	//pOutputCodecContext->time_base.num = 1;
+	pOutputCodecContext->max_b_frames = pInputCodecContext->max_b_frames;	
 	pOutputCodecContext->time_base.den = pInputCodecContext->time_base.den;
 	pOutputCodecContext->time_base.num = pInputCodecContext->time_base.num;
 	pOutStream->r_frame_rate = pInputFormatContext->streams[vIndex]->r_frame_rate;
-
-	//if(av_set_parameters(pOutputCodecContext, NULL) < 0)
-	//{
-	//	goto LINK_ERROR;
-	//}
-
+	
 	pOutputCodec = avcodec_find_encoder(pOutputCodecContext->codec_id);
 	if(pOutputCodec ==  NULL)
 	{
@@ -157,7 +150,6 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	if(!(pOutputCodecContext->flags & AVFMT_NOFILE))
 	{
-		//if(avio_open(&pOutputCodecContext, destFile, NULL) != 0)
 		if(avio_open(&pOutputFormatContext->pb, destFile, AVIO_FLAG_READ_WRITE) != 0)
 		{
 			goto LINK_ERROR;
@@ -176,15 +168,13 @@ int _tmain(int argc, _TCHAR* argv[])
 	int got_packet_ptr = -1;
 	while(av_read_frame(pInputFormatContext, pInPack) >= 0)
 	{
+		if(pInPack->stream_index != vIndex) continue;
 		length = avcodec_decode_video2(pInputCodecContext, pOutFrame, &nComplete, pInPack);
 		if(nComplete > 0)
 		{
 			//SaveBmp(pInputCodecContext, pOutFrame, width, height);  
+
 			//成功解码一帧图像
-			//memset(pEncodeBuf, 0x00, MAX_BUFFER_SIZE);
-			//pOutFrame->pts = av_rescale(frame_index, AV_TIME_BASE*(int64_t)pOutputCodecContext->time_base.num, pOutputCodecContext->time_base.den);
-			//pOutFrame->pict_type = AV_PICTURE_TYPE_NONE;
-				
 			pOutPack->data = NULL;
 			pOutPack->size = 0;
 			av_init_packet(pOutPack);
@@ -225,6 +215,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	}
 
 LINK_ERROR:
+	av_free(pInputCodec);		
 	av_free(pOutputCodec);
 	av_free(pOutputFormat);
 	avcodec_close(pInputCodecContext);
@@ -233,6 +224,7 @@ LINK_ERROR:
 	av_free(pOutputFormatContext);
 
 EXIT:
+	printf("press enter key to exit!\n");
 	getchar();
 	exit(1);
 	return 0;
