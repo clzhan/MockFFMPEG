@@ -74,12 +74,12 @@ int _tmain(int argc, _TCHAR* argv[])
 		if(pInputFormatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO)
 		{
 			vIndex = i;
-			//break;
+			break;
 		}
-		else if(pInputFormatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO)
-		{
-			aIndex = i;
-		}
+		//else if(pInputFormatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO)
+		//{
+		//	aIndex = i;
+		//}
 	}
 
 	if(vIndex == -1)
@@ -124,7 +124,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	
 	//设定输出流编码参数
 	pOutputCodecContext = pOutStream->codec;
-	pOutputCodecContext->codec_id = AV_CODEC_ID_MPEG4;
+	pOutputCodecContext->codec_id = pOutputFormat->video_codec;//AV_CODEC_ID_MPEG4;
 	pOutputCodecContext->codec_type = AVMEDIA_TYPE_VIDEO;
 	pOutputCodecContext->bit_rate	= 128*1024;//98000;
 	pOutputCodecContext->width = width;
@@ -140,11 +140,13 @@ int _tmain(int argc, _TCHAR* argv[])
 	pOutputCodec = avcodec_find_encoder(pOutputCodecContext->codec_id);
 	if(pOutputCodec ==  NULL)
 	{
+		printf("Cannot find encoder which codec_id = %d.\n", pOutputCodecContext->codec_id);
 		goto LINK_ERROR;
 	}
 
 	if(avcodec_open2(pOutputCodecContext, pOutputCodec, NULL) < 0)
 	{
+		printf("avcodec_open2 found error .\n");
 		goto LINK_ERROR;
 	}
 
@@ -152,12 +154,14 @@ int _tmain(int argc, _TCHAR* argv[])
 	{
 		if(avio_open(&pOutputFormatContext->pb, destFile, AVIO_FLAG_READ_WRITE) != 0)
 		{
+			printf("avio_open found error .\n");
 			goto LINK_ERROR;
 		}
 	}
 
 	if(avformat_write_header(pOutputFormatContext, NULL) < 0)
 	{
+		printf("avformat_write_header found error .\n");
 		goto LINK_ERROR;
 	}
 
@@ -183,19 +187,19 @@ int _tmain(int argc, _TCHAR* argv[])
 			{
 				pOutPack->flags = pInPack->flags;
 				pOutPack->stream_index = pInPack->stream_index;					
-				//pOutPack->dts = av_rescale_q_rnd(pOutPack->dts,
-				//	pOutputFormatContext->streams[vIndex]->codec->time_base, pOutputFormatContext->streams[vIndex]->time_base,
-				//	(AVRounding)(AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
-				//pOutPack->pts = av_rescale_q_rnd(pOutPack->pts,
-				//	pOutputFormatContext->streams[vIndex]->codec->time_base, pOutputFormatContext->streams[vIndex]->time_base,
-				//	(AVRounding)(AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
-				pOutPack->dts = av_rescale_q(pOutPack->dts,
-					pOutputFormatContext->streams[vIndex]->codec->time_base, pOutputFormatContext->streams[vIndex]->time_base);
-				pOutPack->pts = av_rescale_q(pOutPack->pts,
-					pOutputFormatContext->streams[vIndex]->codec->time_base, pOutputFormatContext->streams[vIndex]->time_base);
-				pOutPack->duration = av_rescale_q(pOutPack->duration,
-					pOutputFormatContext->streams[vIndex]->codec->time_base, pOutputFormatContext->streams[vIndex]->time_base
-					);
+				pOutPack->dts = av_rescale_q_rnd(pOutPack->dts,
+					pOutputFormatContext->streams[vIndex]->codec->time_base, pOutputFormatContext->streams[vIndex]->time_base,
+					(AVRounding)(AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
+				pOutPack->pts = av_rescale_q_rnd(pOutPack->pts,
+					pOutputFormatContext->streams[vIndex]->codec->time_base, pOutputFormatContext->streams[vIndex]->time_base,
+					(AVRounding)(AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
+				//pOutPack->dts = av_rescale_q(pOutPack->dts,
+				//	pOutputFormatContext->streams[vIndex]->codec->time_base, pOutputFormatContext->streams[vIndex]->time_base);
+				//pOutPack->pts = av_rescale_q(pOutPack->pts,
+				//	pOutputFormatContext->streams[vIndex]->codec->time_base, pOutputFormatContext->streams[vIndex]->time_base);
+				//pOutPack->duration = av_rescale_q(pOutPack->duration,
+				//	pOutputFormatContext->streams[vIndex]->codec->time_base, pOutputFormatContext->streams[vIndex]->time_base
+				//	);
 
 				ret = av_write_frame(pOutputFormatContext, pOutPack);
 			}
