@@ -124,7 +124,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	
 	//设定输出流编码参数
 	pOutputCodecContext = pOutStream->codec;
-	pOutputCodecContext->codec_id = pOutputFormat->video_codec;//AV_CODEC_ID_MPEG4;
+	pOutputCodecContext->codec_id = AV_CODEC_ID_MPEG4;
 	pOutputCodecContext->codec_type = AVMEDIA_TYPE_VIDEO;
 	pOutputCodecContext->bit_rate	= 128*1024;//98000;
 	pOutputCodecContext->width = width;
